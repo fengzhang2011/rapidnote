@@ -1,8 +1,17 @@
 <template>
   <div>
-    <div id="result"></div>
+    <div id="result" class="rapid-note-rendered-container"></div>
   </div>
 </template>
+
+<style scoped>
+.rapid-note-rendered-container {
+  /* border: 1px solid red; */
+  width: 100%;
+  height: 100%;
+  background: white;
+}
+</style>
 
 <script setup>
 import { watch } from 'vue';
