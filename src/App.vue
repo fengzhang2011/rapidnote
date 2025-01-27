@@ -6,6 +6,7 @@
       <NoteMain v-if="page === 'note'" style="width: 100%;"></NoteMain>
       <TomatoMain v-else-if="page === 'tomato'" style="width: 100%;">
       </TomatoMain>
+      <PostTester v-else-if="page === 'post'" style="width: 100%;"></PostTester>
     </div>
   </div>
 </template>

@@ -136,6 +136,13 @@ const menus = reactive([
     ]
   },
   {
+    id: 'tools',
+    label: 'Tools',
+    submenus: [
+      { id: 'post', label: 'POST Tester' },
+    ]
+  },
+  {
     id: 'settings',
     label: 'Settings',
     submenus: [

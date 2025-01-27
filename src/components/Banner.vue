@@ -1,17 +1,18 @@
 <template>
   <div class="banner-container">
     <div class="date-time">{{ formatDateTime(currentTime) }}</div>
-    <div class="date-time" style="display: flex;">
-      <div style="margin-right: 20px; color: green;">
+    <div class="date-time" style="display: flex">
+      <div style="margin-right: 20px; color: green">
         {{ formatTomatoTime(tomato) }}
       </div>
-      <div style="display: flex; align-items:center;">
+      <div style="display: flex; align-items: center">
         <el-button type="success" size="small" @click="handleRestart">Restart</el-button>
       </div>
-      <div style="margin: 0 20px; color: red;">
+      <div>{{ haha }}</div>
+      <div style="margin: 0 20px; color: red">
         {{ formatTomatoTime(rest) }}
       </div>
-      <div style="display: flex; align-items:center;">
+      <div style="display: flex; align-items: center">
         <el-button type="danger" size="small" @click="handleRest">Rest</el-button>
       </div>
     </div>
@@ -32,16 +33,19 @@
 }
 </style>
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref } from "vue";
+import { invoke } from "@tauri-apps/api/tauri";
+
 const currentTime = ref(new Date());
 const tomato = ref(25 * 60); // seconds
 const rest = ref(0 * 60); // seconds
+const haha = ref("a");
 
 const padNumber = (num: Number, size: number) => {
   let output = num.toString();
   while (output.length < size) output = "0" + output;
   return output;
-}
+};
 
 const formatDateTime = (date: Date) => {
   const year = date.getFullYear();
@@ -69,6 +73,14 @@ const handleRest = () => {
   rest.value = 5 * 60;
 };
 
+async function getTomatoClockStatus() {
+  // console.log(invoke);
+  // const clock = await invoke("get_tomato_clock");
+  // console.log("Tomato Clock:", clock);
+  // haha.value = clock.clock_type;
+  // haha.value = await invoke("haha", {});
+}
+
 onMounted(() => {
   setInterval(() => {
     currentTime.value = new Date();
@@ -85,6 +97,6 @@ onMounted(() => {
       }
     }
   }, 1000);
+  getTomatoClockStatus();
 });
-
 </script>
