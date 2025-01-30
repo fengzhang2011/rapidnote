@@ -1,14 +1,38 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + Vue 3 App</title>
+    <title>Tauri + Vue + Typescript App</title>
   </head>
 
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <button id="toggle-window">Toggle Second Window</button>
+    <script type="module" src="/src/main.ts"></script>
+    <script type="module">
+      const toggleButton = document.getElementById("toggle-window");
+      toggleButton.addEventListener("click", async () => {
+        let secondWindow;
+        const appWindow = window.__TAURI__.window;
+        const allWindows = await appWindow.getAllWindows();
+        for (const win of allWindows) {
+          if (win.label === "floating") {
+            console.log("haha");
+            secondWindow = win;
+          }
+        }
+        if (secondWindow) {
+          const isVisible = await secondWindow.isVisible();
+          if (isVisible) {
+            await secondWindow.hide();
+          } else {
+            await secondWindow.show();
+            await secondWindow.setAlwaysOnTop(true);
+          }
+        }
+      });
+    </script>
   </body>
 </html>

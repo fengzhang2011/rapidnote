@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Floating Window</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #da532c;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        cursor: grab;
+        overflow: hidden;
+      }
+      .activity-table {
+        width: 100%;
+        font-size: 0.8em;
+        user-select: cursor;
+        --webkit-user-select: cursor;
+      }
+      .activity-table tr td:first-child {
+        width: 15px;
+      }
+      .activity-table tr td:nth-child(2) {
+        width: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="display: flex; flex-direction: column; width: 100%; margin: 0 10px">
+      <div id="bar" style="display: flex; justify-content: space-between; align-items: center; height: 40px; width: 100%">
+        <button id="start-work">工作</button>
+        <button id="start-rest">休息</button>
+        <div id="count-down" style="background: green; padding: 5px; font-size: 1.3em"></div>
+        <div id="activity-container" style="display: flex; flex-direction: column; justify-content: flex-start; height: 100%">
+          <div id="time" style="user-select: none; -webkit-user-select: none; font-size: 0.7em; margin-top: 5px"></div>
+          <div id="activity" style="font-size: 0.7em; width: 100px; overflow: hidden">Unknown</div>
+        </div>
+      </div>
+      <div style="height: 10px; width: 100%; background: red; margin: 3px 0 6px 0"></div>
+      <div id="activities" style="max-height: 235px; overflow-y: auto"></div>
+    </div>
+    <script src="dayjs.min.js"></script>
+    <script type="module">
+      console.log(window.__TAURI__);
+      const { getCurrentWindow, LogicalPosition, LogicalSize } = window.__TAURI__.window;
+      const { invoke } = window.__TAURI__.core;
+
+      const appWindow = await getCurrentWindow();
+      let isDragging = false;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      let workTime = 25 * 60; // 25 minutes = 25 * 60 = 1500 seconds
+      let restTime = 5 * 60; // 5 minutes = 5 * 60 = 300 seconds
+      let countDownTime = null;
+      let currentMode = 0;
+
+      let activityExpanded = false;
+      let activities = [];
+
+      document.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        offsetX = e.clientX;
+        offsetY = e.clientY;
+        document.body.style.cursor = "grabbing";
+      });
+
+      document.addEventListener("mousemove", async (e) => {
+        if (isDragging) {
+          const { x, y } = await appWindow.innerPosition();
+          const newX = x + e.clientX - offsetX;
+          const newY = y + e.clientY - offsetY;
+          await appWindow.setPosition(new LogicalPosition(newX, newY));
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        isDragging = false;
+        document.body.style.cursor = "grab";
+      });
+
+      setInterval(() => {
+        const item = document.getElementById("time");
+        if (item) {
+          item.innerHTML = dayjs().format("MM-DD HH:mm:ss");
+        }
+        if (currentMode != 0) {
+          countDownTime--;
+          if (countDownTime <= 0) {
+            if (currentMode === 1) {
+              currentMode = 2;
+              countDownTime = restTime;
+            } else if (currentMode === 2) {
+              currentMode = 1;
+              countDownTime = workTime;
+            }
+            addActivity(currentMode);
+          }
+          updateCountDownTime();
+        }
+      }, 1000);
+
+      const startWork = document.getElementById("start-work");
+      if (startWork) {
+        startWork.addEventListener("click", () => {
+          // console.log("startWorkTimer");
+          countDownTime = workTime;
+          currentMode = 1;
+          updateCountDownTime();
+          addActivity(currentMode);
+        });
+      }
+
+      const startRest = document.getElementById("start-rest");
+      if (startRest) {
+        startRest.addEventListener("click", () => {
+          // console.log("startRestTimer");
+          countDownTime = restTime;
+          currentMode = 2;
+          updateCountDownTime();
+          addActivity(currentMode);
+        });
+      }
+
+      const activityContainer = document.getElementById("activity-container");
+      if (activityContainer) {
+        activityContainer.addEventListener("click", () => {
+          if (!isDragging) {
+            // console.log("startRestTimer");
+            activityExpanded = !activityExpanded;
+            if (activityExpanded) {
+              appWindow.setSize(new LogicalSize(300, 300));
+            } else {
+              appWindow.setSize(new LogicalSize(300, 40));
+            }
+          }
+        });
+      }
+
+      function updateCountDownTime() {
+        const minutes = Math.floor(countDownTime / 60);
+        const seconds = countDownTime % 60;
+        const formattedMinute = String(minutes).padStart(2, "0"); // "08"
+        const formattedSecond = String(seconds).padStart(2, "0"); // "05"
+        document.getElementById("count-down").innerHTML = `${formattedMinute}:${formattedSecond}`;
+      }
+
+      async function updateActivities() {
+        // activities
+        const activitiesContainer = document.getElementById("activities");
+        if (activitiesContainer) {
+          let tableContent = "";
+          for (let i = 0; i < activities.length; i++) {
+            const activity = activities[i];
+            tableContent += "<tr>";
+            tableContent += `<td>${i + 1}</td><td>${await dayjs(activity.start).format("HH:mm:ss")}</td><td id="activity-${i}"><input name="activity-input" type="text" value="${
+              activity.description
+            }"></input></td>`;
+            tableContent += "</tr>";
+          }
+          activitiesContainer.innerHTML = `<table class="activity-table">${tableContent}</table>`;
+          const activityElement = document.getElementById("activity");
+          if (activityElement && activities.length > 0) {
+            activityElement.innerText = activities[activities.length - 1].description;
+            for (let i = 0; i < activities.length; i++) {
+              const element = document.getElementById(`activity-${i}`);
+              if (element) {
+                element.addEventListener("change", (event) => {
+                  activityElement.innerText = event.target.value;
+                  activities[i].description = event.target.value;
+                });
+              }
+            }
+          }
+        }
+      }
+
+      function addActivity() {
+        activities.push({ id: activities.length, start: new Date(), description: currentMode === 1 ? "工作" : "休息" });
+        saveActivities();
+        updateActivities();
+      }
+
+      async function loadActivities() {
+        try {
+          const filePath = `data/activity/${getActivityFileName()}`;
+          console.log("save to", filePath);
+          const jsonData = await invoke("load_json_from_file", {
+            filePath,
+          });
+          activities = jsonData;
+          updateActivities();
+        } catch (error) {
+          console.error("Failed to load JSON file:", error);
+        }
+      }
+
+      async function saveActivities() {
+        try {
+          const filePath = `data/activity/${getActivityFileName()}`;
+          console.log("save to", filePath);
+          await invoke("save_json_to_file", {
+            filePath,
+            jsonData: activities,
+          });
+          console.log("saved to", filePath);
+        } catch (error) {
+          console.error("Failed to save JSON file:", error);
+        }
+      }
+
+      function getActivityFileName() {
+        const filename = `${dayjs(new Date()).format("YYYYMMDD")}.json`;
+        return filename;
+      }
+
+      loadActivities();
+    </script>
+  </body>
+</html>
