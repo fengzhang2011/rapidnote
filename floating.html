@@ -63,6 +63,7 @@
 
       let activityExpanded = false;
       let activities = [];
+      let lastActivityFileName = null;
 
       document.addEventListener("mousedown", (e) => {
         isDragging = true;
@@ -183,6 +184,13 @@
       }
 
       function addActivity() {
+        const filePath = getActivityFileName();
+        if (lastActivityFileName != null) {
+          if (lastActivityFileName !== filePath) {
+            activities.length = 0;
+          }
+        }
+        lastActivityFileName = filePath;
         activities.push({ id: activities.length, start: new Date(), mode: currentMode, description: currentMode === 1 ? "工作" : "休息" });
         saveActivities();
         updateActivities();
